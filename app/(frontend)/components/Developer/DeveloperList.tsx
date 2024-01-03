@@ -13,6 +13,7 @@ import {
 } from "@/src/services/ProjectService";
 import axios from "axios";
 import Loader from "../UI/Loader";
+import { useSearchParams } from "next/navigation";
 type OptionType = {
   value: string;
   label: string;
@@ -33,6 +34,20 @@ function DeveloperList({ params }) {
   const { accommodationOptions } = useGetAccommodationOptions();
   const { projectOfferTypeOption } = useGetProjectOfferTypes();
   const { projectOption } = useGetProjectOptions();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.has("community_name") && searchParams.has("community_detail")) {
+      setForm({
+        ...form, community_id: { 
+          label: searchParams.get("community_name"), 
+          value: searchParams.get("community_detail") 
+        }
+      });
+      
+    }
+  }, []);
+
   const onNextPage = () => {
     let url = links?.next;
     for (let key in form) {

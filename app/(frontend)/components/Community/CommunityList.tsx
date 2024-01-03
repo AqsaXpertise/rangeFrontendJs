@@ -13,6 +13,8 @@ import {
 } from "@/src/services/ProjectService";
 import axios from "axios";
 import Loader from "../UI/Loader";
+import { useSearchParams } from "next/navigation";
+
 type OptionType = {
   value: string;
   label: string;
@@ -42,6 +44,21 @@ function CommunityList() {
   const projectOfferTypeOptions: OptionType[] = projectOfferTypeOption;
   const projectOptions: OptionType[] = projectOption;
   const [inputValue, setInputValue] = useState("");
+
+  const searchParams = useSearchParams();
+
+
+  useEffect(() => {
+    if (searchParams.has("developer_name") && searchParams.has("developer_detail")) {
+      setForm({
+        ...form, developer_id: { 
+          label: searchParams.get("developer_name"), 
+          value: searchParams.get("developer_detail") 
+        }
+      });
+      
+    }
+  }, []);
 
   const onNextPage = () => {
     let url = links?.next;
@@ -143,7 +160,8 @@ function CommunityList() {
                   options={developerOptions}
                   value={form.developer_id}
                   className="reactSelectInput"
-                  onChange={(e) => setForm({ ...form, developer_id: e })}
+                  onChange={(e) => 
+                    setForm({ ...form, developer_id: e })}
                 />
               </div>
             </div>

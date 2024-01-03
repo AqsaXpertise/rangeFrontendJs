@@ -65,10 +65,7 @@ function Filters({
       setForm({ ...form });
       setShowMore(true);
     }
-    if (
-      searchParams.has("developer_name") &&
-      searchParams.has("developer_detail")
-    ) {
+    if (searchParams.has("developer_name") && searchParams.has("developer_detail")) {
       setForm({
         ...form,
         searchBy: [
@@ -82,6 +79,23 @@ function Filters({
         {
           type: searchParams.get("developer_detail"),
           name: searchParams.get("developer_name"),
+        },
+      ]);
+    }
+    if (searchParams.has("community_name") && searchParams.has("community_detail")) {
+      setForm({
+        ...form,
+        searchBy: [
+          {
+            type: searchParams.get("community_detail"),
+            name: searchParams.get("community_name"),
+          },
+        ],
+      });
+      selectRef.current.setValue([
+        {
+          type: searchParams.get("community_detail"),
+          name: searchParams.get("community_name"),
         },
       ]);
     }
