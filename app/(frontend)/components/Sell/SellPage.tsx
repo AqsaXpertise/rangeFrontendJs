@@ -25,7 +25,7 @@ function SellPage() {
     saveContactFormApi(data)
       .then((res) => {
         toast.success(
-          "Thank you, Our team will get back to you soon"
+          "Thank you. Our team will get back to you soon."
         );
         reset();
       })
@@ -101,7 +101,7 @@ function SellPage() {
           <div className="rowArea">
             <div className="colmBox">
               <img
-                src="/images/icons/icon-5.png"
+                src="/images/icons/property.png"
                 className="iconImg"
                 alt="PROPERTY VALUATION"
               />

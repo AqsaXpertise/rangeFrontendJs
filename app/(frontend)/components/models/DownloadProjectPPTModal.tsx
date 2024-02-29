@@ -41,7 +41,7 @@ function DownloadProjectPPTModal(props) {
 
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", props.fileName); // Set the desired filename
+      link.setAttribute("download", props.fileName+" Brochure"); // Set the desired filename
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -58,7 +58,7 @@ function DownloadProjectPPTModal(props) {
   const onSubmit = (data) => {
     saveContactFormApi(data)
       .then((res) => {
-        toast.success("Please Wait until details is being download");
+        toast.success("Thank you. Your document is downloading.");
         downloadFile();
         reset();
       })
@@ -163,7 +163,7 @@ function DownloadProjectPPTModal(props) {
                         <div className="row">
                           <div className="col-md-12">
                             <h6 className="text-primary text-center">
-                              Enter Details For Downloding Brochure
+                              Enter Details For Downloading Brochure
                             </h6>
 
                             {/* {showOtp && (

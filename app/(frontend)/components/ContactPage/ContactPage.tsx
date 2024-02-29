@@ -25,7 +25,7 @@ function ContactPage() {
     saveContactFormApi(data)
       .then((res) => {
         toast.success(
-          "Thank you, Our team will get back to you soon"
+          "Thank you. Our team will get back to you soon."
         );
         reset();
       })
@@ -66,12 +66,12 @@ function ContactPage() {
   // };
   return (
     <>
-      <header id="contactUsHeader">
+      {/* <header id="contactUsHeader">
         <img
           src="/images/banner/contactUsBanner.webp"
           className="headerSimpleImg"
         />
-      </header>
+      </header> */}
       <section className="section contactSection" id="contactSectionId">
         <div className="container">
           <h4 className="sctionMdTitle text-primary text-center ">
@@ -206,7 +206,7 @@ function ContactPage() {
                     <textarea
                       className="form-control cntInptField textareaField"
                       placeholder="Message"
-                      value={formData.message}
+                     
                       {...register("message", { required: false })}
                     ></textarea>
                   </div>

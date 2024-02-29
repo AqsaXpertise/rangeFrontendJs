@@ -76,6 +76,7 @@ function SellModel(props) {
   // };
 
   const onSubmit = (data) => {
+    setIsLoading(true);
     saveContactFormApi(data)
       .then((res) => {
         // toast.success(
@@ -85,7 +86,9 @@ function SellModel(props) {
           url: props.sellerLink,
         })
           .then(function () {
-            toast.success( "Please Wait until your seller guide is being download");
+            setIsLoading(false);
+            closeRef.current.click();
+            toast.success( "Please wait, the Seller's Guide is downloading.");
            
           })
           .catch(function (error) {
@@ -156,7 +159,7 @@ function SellModel(props) {
                         <div className="row">
                           <div className="col-md-12">
                             <h6 className="text-primary text-center">
-                              Enter Details For Downloding {props.title}
+                              Enter Details For Downloading {props.title}
                             </h6>
 
                             {/* {showOtp && (

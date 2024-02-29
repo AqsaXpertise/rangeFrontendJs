@@ -105,7 +105,7 @@ function DeveloperList({ params }) {
         </h4>
 
         <div className="row mb-5">
-            <div className="col-md-3">
+            {/* <div className="col-md-3">
               <div className="proSelectBox">
                 <label>PROJECT</label>
                 <Select
@@ -116,8 +116,8 @@ function DeveloperList({ params }) {
                   onChange={(e) => setForm({ ...form, project_id: e })}
                 />
               </div>
-            </div>
-            <div className="col-md-3">
+            </div> */}
+            <div className="col-md-4">
               <div className="proSelectBox">
                 <label>PROPERTY TYPE</label>
                 <Select
@@ -128,7 +128,7 @@ function DeveloperList({ params }) {
                 />
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-4">
               <div className="proSelectBox">
                 <label>COMMUNITIES</label>
                 <Select
@@ -139,7 +139,7 @@ function DeveloperList({ params }) {
                 />
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-4">
               <div className="proSelectBox">
                 <label>PROJECT STATUS</label>
                 <Select

@@ -59,7 +59,7 @@ function DownloadBrochure(props) {
     saveContactFormApi(data)
       .then((res) => {
         toast.success(
-          "Please Wait until your brochure is being download"
+          "Thank you. Your document is downloading."
         );
         downloadFile()
         reset();
@@ -168,7 +168,7 @@ function DownloadBrochure(props) {
                         <div className="">
                             <div className="row">
                             <div className="col-md-12">
-                                <h6 className="text-primary text-center">Enter Details For Downloding Brochure</h6>
+                                <h6 className="text-primary text-center">Enter Details For Downloading Brochure</h6>
 
                                 {/* {showOtp && (
                                 <div className="form-group">

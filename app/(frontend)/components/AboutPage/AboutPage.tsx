@@ -7,8 +7,9 @@ function AboutPage() {
     <>
       <header className="aboutHeader">
         <img
-          src="/images/banner/aboutUsBanner.webp"
+          src="/images/banner/about-banner.jpg"
           className="headerSimpleImg"
+          id="headerSimpleImg"
           alt="header"
         />
       </header>
@@ -84,7 +85,7 @@ function AboutPage() {
                       />
                       <div className="cardContent ">
                         <h5 className="crdTitle">{management.name}</h5>
-                        <p className="crdText">{management.designation}</p>
+                        <p className="">{management.designation}</p>
                         <Link
                           href={`/managements/${management?.slug}`}
                           className="fillBtn crdReadMorebtn mrAuto managementReadMore"

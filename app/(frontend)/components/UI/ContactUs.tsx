@@ -20,7 +20,7 @@ const ContactUs = () => {
     saveContactFormApi(data)
       .then((res) => {
         toast.success(
-          "Thank you, Our team will get back to you soon"
+          "Thank you. Our team will get back to you soon."
         );
         reset();
       })
@@ -32,7 +32,7 @@ const ContactUs = () => {
     <div className="col-12 col-lg-4 col-md-4">
       <div className="text-start">
         <div className="mb-3">
-          <p className="text-white fs-16 mb-0">CONTACT US</p>
+          <p className="text-dark mb-0"><b>WRITE TO US</b></p>
         </div>
 
         <div className="contactForm">

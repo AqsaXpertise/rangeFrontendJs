@@ -12,6 +12,7 @@ import DownloadPPTModal from "@/app/(frontend)/components/models/DownloadPPTModa
 import SaleOfferModal from "@/app/(frontend)/components/models/SaleOfferModal";
 import DownloadPropertyPPTModal from "../models/DownloadPropertyPPTModal";
 import DownloadBrochure from "@/app/(frontend)/components/models/DownloadBrochure";
+import MortgageModel from "../models/MortgageModel";
 import {
   GoogleMap,
   MarkerF,
@@ -47,10 +48,13 @@ function SinglePropertyView({ params }) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const { propertyData } = useGetSinglePropertyData(slug);
+
+  const placesList = ["geometry", "places", "marker"];
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.GOOGLE_MAP_KEY,
-    libraries: ["geometry", "places", "marker"],
+    libraries: placesList,
   });
+  const projectSwiperRef = useRef<SwiperCore>();
   const CommunitySwiperRef = useRef<SwiperCore>();
   const PropertySwiperRef = useRef<SwiperCore>();
   const similiarPropertySwiperRef = useRef<SwiperCore>();
@@ -106,37 +110,95 @@ function SinglePropertyView({ params }) {
   };
 
   useEffect(() => {
+    console.log("Loading... updating...");
     let path = getFontAwesomeSvgPath(icon);
     setIconPath(path);
   }, [icon]);
 
+  // const AdvanceMarker = ({ map, position, children, onClick }) => {
+  //   const rootRef = useRef(null);
+  //   const markerRef = useRef(null);
+
+  //   useEffect(() => {
+  //     if (!rootRef.current) {
+  //       const container = document.createElement("div");
+  //       container.classList.add("mapMarker");
+  //       rootRef.current = createRoot(container);
+  //       markerRef.current = new google.maps.marker.AdvancedMarkerElement({
+  //         position,
+  //         content: container,
+  //         title: 'Uluru',
+  //       });
+  //     }
+
+  //     return () => (markerRef.current.map = null);
+  //   }, []);
+
+  //   useEffect(() => {
+  //     rootRef.current.render(children);
+  //     markerRef.current.position = position;
+  //     markerRef.current.map = map;
+  //     const listener = markerRef.current.addListener("click", onClick);
+  //     return () => listener.remove();
+  //   }, [map, position, children, onClick]);
+  //   return <>{children}</>;
+  // };
+
   const AdvanceMarker = ({ map, position, children, onClick }) => {
-    const rootRef = useRef(null);
     const markerRef = useRef(null);
-
+  
     useEffect(() => {
-      if (!rootRef.current) {
-        const container = document.createElement("div");
-        container.classList.add("mapMarker");
-        rootRef.current = createRoot(container);
-        markerRef.current = new google.maps.marker.AdvancedMarkerElement({
-          position,
-          content: container,
+      const createMarker = () => {
+        // Ensure google is available
+        if (!window.google || !window.google.maps) {
+          console.error('Google Maps API not available.');
+          return null;
+        }
+        return new window.google.maps.Marker({
+          position: position,
+          map: map,
+          icon: {
+            url: iconPath, // Set the icon path here
+            scaledSize: new window.google.maps.Size(32, 32), // Adjust the size if needed
+          },
         });
+      };
+  
+      if (!markerRef.current) {
+        markerRef.current = createMarker();
+        if (!markerRef.current) return; // Stop further execution if marker creation failed
       }
-
-      return () => (markerRef.current.map = null);
-    }, []);
-
+  
+      return () => {
+        // Clean up resources when component is unmounted
+        if (markerRef.current) {
+          markerRef.current.setMap(null); // Remove marker from map
+        }
+      };
+    }, [map]); // Dependency array to ensure effect runs only when map changes
+  
     useEffect(() => {
-      rootRef.current.render(children);
-      markerRef.current.position = position;
-      markerRef.current.map = map;
-      const listener = markerRef.current.addListener("click", onClick);
-      return () => listener.remove();
-    }, [map, position, children, onClick]);
-    return <>{children}</>;
+      if (!markerRef.current) return;
+  
+      // Update marker position
+      markerRef.current.setPosition(position);
+  
+      // Add click listener
+      markerRef.current.addListener('click', onClick);
+  
+      return () => {
+        // Clean up event listener when component is unmounted
+        if (markerRef.current) {
+          window.google.maps.event.clearListeners(markerRef.current, 'click');
+        }
+      };
+    }, [position, onClick]);
+  
+    // Render children if any with unique keys
+    const renderedChildren = Array.isArray(children) ? children : [children];
+    return <>{renderedChildren.map((child, index) => React.cloneElement(child, { key: `marker-${index}` }))}</>;
   };
+
   const [propertyPrice, setPropertyPrice] = useState(propertyData?.price);
   const [downpaymentPer, setDownpaymentPer] = useState(20);
   const [downpaymentMoney, setDownpaymentMoney] = useState(0);
@@ -180,7 +242,7 @@ function SinglePropertyView({ params }) {
                       {propertyData?.gallery?.map((image, index) => {
                         return (
                           <SwiperSlide key={image.id + index + "gallery"}>
-                            <img src={image.path} alt="range" style={{ height: "500px" }}/>
+                            <img src={image.path} alt={image.title ? image.title : propertyData.name} style={{ height: "500px" }}/>
                           </SwiperSlide>
                         );
                       })}
@@ -224,7 +286,7 @@ function SinglePropertyView({ params }) {
                            <SwiperSlide key={image.id + index + "gallery2"}>
                              <img
                                src={image.path}
-                               alt="range"
+                               alt={image.title ? image.title : propertyData.name}
                                className="img-fluid"
                              />
                            </SwiperSlide>
@@ -332,12 +394,21 @@ function SinglePropertyView({ params }) {
                               PROPERTY STATUS
                             </p>
                             <p className="fw-500 mb-0 fs-16">
-                              For {propertyData && propertyData.category}
-                              {
-                                propertyData?.category === 'Rent' && 
-                                <small> ({propertyData?.rental_period}) </small>
-                              }
-                            </p>
+                            {
+                              propertyData?.category === 'Rent' && 
+                              (<>
+                                 {propertyData && propertyData.category}<small> ({propertyData?.rental_period}) </small>
+                              </>
+                              )
+                            }
+                            {
+                              propertyData?.category === 'Buy' && 
+                              (<>
+                                 {propertyData && propertyData?.completionStatus}
+                              </>
+                              )
+                            }
+                          </p>
                           </div>
                         </div>
                         <div className="mdColBar">
@@ -553,8 +624,8 @@ function SinglePropertyView({ params }) {
                         </div>
                       )} */}
                     </div>
-                    {
-                      propertyData?.category != 'Rent' &&
+                    { propertyData &&
+                      propertyData?.category != 'Rent' && propertyData?.completionStatus !="Off-Plan" &&
                       <MortgageCalculator property={propertyData} />
                     }
                   {propertyData && propertyData.community && (
@@ -618,7 +689,7 @@ function SinglePropertyView({ params }) {
                                   >
                                   <img
                                       src={community["path"]}
-                                      alt="community1"
+                                      alt={community["title"]}
                                       className="img-fluid"
                                       style={{ height: "300px", width: "500px" }}
                                     />
@@ -680,7 +751,7 @@ function SinglePropertyView({ params }) {
                                             <div className="amenityImg mx-auto">
                                               <img
                                                 src={amenity.image}
-                                                alt="Range"
+                                                alt={amenity.name}
                                                 className="img-fluid"
                                                 width="40px"
                                               />
@@ -696,9 +767,6 @@ function SinglePropertyView({ params }) {
                                   )
                             })}
                             </div>
-
-
-
                           <div className="col-12 col-lg-12 col-md-12 propertyMobItemLink">
                             <Swiper
                             slidesPerView={1}
@@ -740,7 +808,7 @@ function SinglePropertyView({ params }) {
                                         <div className="amenityImg mx-auto">
                                           <img
                                             src={amenity.image}
-                                            alt="Range"
+                                            alt={amenity.name}
                                             className="img-fluid"
                                             width="40px"
                                           />
@@ -785,27 +853,103 @@ function SinglePropertyView({ params }) {
                   {propertyData &&
                     propertyData.project &&
                     Object.keys(propertyData.project).length > 0 && (
-                      <div className="mb-3">
-                        <div className="py-3">
+                      <div className="">
+                        <div className="py-1">
                           <div className="mainHead text-primary">
                             <h4 className="mb-0">ABOUT PROJECT</h4>
                           </div>
                         </div>
-                        
-                          
-                        <div className="row">
+                        <div className="row align-items-center">
                             <div className="col-lg-7">
                                 <div className="proColImgBox">
-                                <Link
-                              href={`/projects/${propertyData?.project?.slug}`}
-                              className="text-decoration-none"
-                            >
-                                <img
-                                  src={propertyData?.project?.image}
-                                  alt={propertyData?.project?.name}
-                                  className="img-fluid"
-                                />
-                                </Link>
+                                  {/* <Link
+                                    href={`/projects/${propertyData?.project?.slug}`}
+                                    className="text-decoration-none"
+                                  >
+                                    <img
+                                      src={propertyData?.project?.image}
+                                      alt={propertyData?.project?.name}
+                                      className="img-fluid"
+                                    />
+                                  </Link> */}
+                                  {propertyData && propertyData.project && propertyData?.project?.ExteriorGallery &&  (
+                                    <div className="vertical-center">
+                                      {propertyData?.project?.ExteriorGallery && 
+                                      <Swiper
+                                      loop={true}
+                                      slidesPerView={1}
+                                      spaceBetween={10}
+                                      navigation={{
+                                        nextEl: ".swiper-button-next",
+                                        prevEl: ".swiper-button-prev",
+                                      }}
+                                      breakpoints={{
+                                        640: {
+                                          slidesPerView: 1,
+                                          spaceBetween: 10,
+                                        },
+                                        768: {
+                                          slidesPerView: 1,
+                                          spaceBetween: 10,
+                                        },
+                                        1024: {
+                                          slidesPerView: 1,
+                                          spaceBetween: 10,
+                                        },
+                                      }}
+                                      modules={[Navigation]}
+                                      onSwiper={(swiper) => {
+                                        projectSwiperRef.current = swiper;
+                                      }}
+                                      className="swiper pb-2 communityProjectSwiperr"
+                                    >
+                                      {propertyData?.project?.ExteriorGallery.map(
+                                        (project, index) => {
+                                          return (
+                                            <SwiperSlide
+                                              key={project.id + index + "project"}
+                                            >
+                                              <div className="swiper-slide">
+                                                <Link
+                                                  href={`/projects/${propertyData.project["slug"]}`}
+                                                  className="text-decoration-none communityImgCont"
+                                                >
+                                                <img
+                                                    src={project["path"]}
+                                                    alt={project["title"] ? project["title"] : propertyData.project['name']}
+                                                    className="img-fluid"
+                                                    
+                                                  />
+                                                
+                                                </Link>
+                                              </div>
+                                            </SwiperSlide>
+                                          );
+                                        }
+                                      )}
+                                      <div
+                                        className="swiper-button-prev swiperUniquePrev text-white"
+                                        onClick={() => projectSwiperRef.current?.slidePrev()}
+                                      >
+                                        <span className="">
+                                          <i className="bi bi-chevron-left fs-1"></i>
+                                        </span>
+                                      </div>
+                                      <div
+                                        className="swiper-button-next swiperUniqueNext text-white"
+                                        onClick={() => projectSwiperRef.current?.slideNext()}
+                                      >
+                                        <span className="">
+                                          <i className="bi bi-chevron-right fs-1"></i>
+                                        </span>
+                                      </div>
+                                      </Swiper>
+                                    }
+                                      
+                                    </div>
+                                  )}
+                                
+
                                 </div>
                             </div>
                             <div className="col-lg-5">
@@ -839,17 +983,6 @@ function SinglePropertyView({ params }) {
                                        </div>
                                 </div>
                             </div>
-                       
-
-                            {/* <div className="col-12 col-lg-12 my-auto">
-                              <div className="aboutProImg">
-                                <img
-                                  src={propertyData?.project?.image}
-                                  alt={propertyData?.project?.name}
-                                  className="img-fluid"
-                                />
-                              </div>
-                            </div> */}
 
                         </div>
                        
@@ -857,7 +990,7 @@ function SinglePropertyView({ params }) {
                           <h5 className="mainHead text-primary">
                             <Link
                               href={`/projects/${propertyData?.project?.slug}`}
-                              className="text-decoration-none"
+                              className="text-decoration-none text-primary"
                             >
                               {propertyData?.project?.name}
                             </Link>
@@ -869,412 +1002,15 @@ function SinglePropertyView({ params }) {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    
-                </div>
-                
-                <div className="col-12 col-lg-4 col-md-4 propertyDesktopItemLink">
-                  <div className=" px-2">
-
-                 
-                    
-                      <div className="rowFlexBar border-bottom border-2">
-                        <div className="mdColBar">
-                          <div className=" py-3">
-                            <p className="text-primary fw-500 mb-1 fs-16">
-                            REFERENCE NUMBER
-                            </p>
-                            <p className="fw-500 mb-0 fs-16">
-                              {propertyData && propertyData?.reference_number}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mdColBar">
-                          <div className=" py-3">
-                            <p className="text-primary fw-500 mb-1 fs-16">
-                              PERMIT NUMBER
-                            </p>
-                            <p className="fw-500 mb-0 fs-16">
-                              {propertyData && propertyData.permit_number}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                    <div className="rowFlexBar border-bottom border-2">
-                      <div className="mdColBar">
-                        <div className=" py-3">
-                          <p className="text-primary fw-500 mb-1 fs-16">
-                            PROPERTY STATUS
-                          </p>
-                          <p className="fw-500 mb-0 fs-16">
-                            For {propertyData && propertyData.category}
-                            {
-                              propertyData?.category === 'Rent' && 
-                              <small> ({propertyData?.rental_period}) </small>
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mdColBar">
-                        <div className=" py-3">
-                          <p className="text-primary fw-500 mb-1 fs-16">
-                            PROPERTY TYPE
-                          </p>
-                          <p className="fw-500 mb-0 fs-16">
-                            {propertyData && propertyData.accommodation}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rowFlexBar border-bottom border-2">
-                      <div className="mdColBar">
-                        <div className=" py-3">
-                          <p className="text-primary fw-500 mb-1 fs-16">
-                            PRICE
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mdColBar">
-                        <div className=" py-3">
-                          <p className="fw-500 mb-0 fs-16">
-                            AED{" "}
-                            {propertyData &&
-                              new Intl.NumberFormat().format(
-                                propertyData.price
-                              )}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="border-bottom border-2 py-3">
-                      <ul className="list-unstyled proInfoList">
-                        <li className="liBar">
-                          <small>
-                            <img
-                              src="/images/icons/bed-blue.png"
-                              alt="Range"
-                              className="img-fluid"
-                              width="30px"
-                            />
-                            <span className="align-text-top ms-2 fs-14 fw-500">
-                              {propertyData && propertyData.bedrooms}
-                            </span>
-                          </small>
-                        </li>
-                        <li className="liBar">
-                          <small>
-                            <img
-                              src="/images/icons/bath-blue.png"
-                              alt="Range"
-                              className="img-fluid"
-                              width="30px"
-                            />
-                            <span className="align-text-top ms-2 fs-14 fw-500">
-                              {propertyData && propertyData.bathrooms}
-                            </span>
-                          </small>
-                        </li>
-
-                        <li className="liBar">
-                          <small>
-                            <img
-                              src="/images/icons/area-blue.png"
-                              alt="Range"
-                              className="img-fluid"
-                              width="30px"
-                            />
-                            <span className="align-text-top ms-2 fs-14 fw-500">
-                              {propertyData && propertyData.area}{" "}
-                              {propertyData?.unit_measure}
-                            </span>
-                          </small>
-                        </li>
-                        {propertyData &&
-                          propertyData.developer &&
-                          
-                            <li className="liBar">
-                              <small>
-                                <img
-                                  src="/images/icons/building.png"
-                                  alt="Range"
-                                  className="img-fluid"
-                                  width="30px"
-                                />
-                                <span className="align-text-top ms-2 fs-16 fw-500">
-                                  <Link
-                                    href={`/developers/${propertyData?.developer.slug}`}
-                                    className="text-decoration-none"
-                                  >
-                                    {propertyData?.developer.name}
-                                  </Link>
-                                </span>
-                              </small>
-                            </li>
-                          }
-                      </ul>
-                    </div>
-                    {propertyData?.agent && (
-                      <>
-                      <div className="py-3 proUserBox">
-                    <div className="d-flex justify-content-start py-2 border-bottom border-2 ">
-                      <div className="my-auto projctSpecIMg me-3 mb-3">
-                        <center>
-                          <img
-                            src={
-                              propertyData?.agent && propertyData.agent?.image
-                            }
-                            className="img-fluid"
-                            width="60"
-                            alt={
-                              propertyData?.agent && propertyData.agent?.name
-                            }
-                          />
-                        </center>
-                      </div>
-                      <div className="proUserBoxContent mb-3">
-                        <div className="projectSpec  text-uppercase">
-                          <p className="text-primary fw-500 mb-0 fs-16">
-                            {propertyData?.agent && propertyData?.agent?.name}
-                          </p>
-                          <p className="fw-500 mb-2 fs-14">
-                            {propertyData?.agent &&
-                              propertyData?.agent?.designation}
-                          </p>
-                          <a
-                            href={"tel:" + propertyData?.agent?.contact}
-                            className="Probtn bg-primary"
-                          >
-                            <img
-                              src="/images/icons/phone.png"
-                              className="proPhoneIcon"
-                            />
-                            CALL NOW
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                      <div className="py-3">
-                      <div className="BtnsflexBar mb-3">
-                        <a
-                          className="Probtn whatsappBtn wd50pr"
-                          href={
-                            "https://wa.me/" +
-                            propertyData?.agent?.whatsapp +
-                            "?text=Hi, " +
-                            propertyData?.agent?.name +
-                            " Please let me know more about the following property "+getCurrentUrl() 
-                          }
-                        >
-                          <i className="fa fa-whatsapp"></i>
-                          WHATSAPP
-                        </a>
-                        <a
-                          className="Probtn bg-primary wd50pr"
-                          href={"mailto:" + propertyData?.agent?.email}
-                        >
-                          <i className="fa fa-envelope"></i>
-                          Email
-                        </a>
-                      </div>
-
-                      <div className="text-center mb-3">
-                        <a
-                          className="Probtn bg-primary scheduleBtn"
-                          data-bs-toggle="modal"
-                          data-bs-target="#bookAmeeting"
-                        >
-                          <i className="fa fa-calendar" aria-hidden="true"></i>
-                          SCHEDULE VIEWING
-                        </a>
-                      </div>
-                    </div>
-                      </>
-                    
-                    )}
-                    
-                    {/*                     
-                    {propertyData && (
-                      <div className="py-3">
-                        <div>
-                          Share on:&nbsp;
-                          <WhatsappShareButton
-                            title={propertyData?.name}
-                            separator=","
-                            url={getCurrentUrl()}
-                            className="text-decoration-none  text-black"
-                          >
-                            <small>
-                              <img
-                                src="/images/icons/whatsapp.png"
-                                alt="Range"
-                                className="img-fluid"
-                                width="25px"
-                              />
-                            </small>
-                          </WhatsappShareButton>
-                          <EmailShareButton url={getCurrentUrl()}>
-                            <small>
-                              <img
-                                src="/images/icons/gmail.png"
-                                alt="Range"
-                                className="img-fluid"
-                                width="25px"
-                              />
-                            </small>
-                          </EmailShareButton>
-                        </div>
-                      </div>
-                    )} */}
-                  </div>
-                  {
-                    propertyData?.category != 'Rent' &&
-                    <MortgageCalculator property={propertyData} />
-                  }
-                  
-                  
-                  {/* <div>
-                    {propertyData && (
-                      <>
-                        <p>Share this property on:</p>
-                        <div className="text-center mb-3">
-                          <WhatsappShareButton
-                            title={propertyData?.name}
-                            separator=","
-                            url={getCurrentUrl()}
-                            className=" Probtn whatsappBtn  scheduleBtn"
-                          >
-                            <i
-                              className="fa fa-whatsapp"
-                              aria-hidden="true"
-                            ></i>
-                            Whatsapp
-                          </WhatsappShareButton>
-                        </div>
-                        <div className="text-center mb-3">
-                          <EmailShareButton
-                            url={getCurrentUrl()}
-                            className="Probtn bg-primary scheduleBtn"
-                          >
-                            <i
-                              className="fa fa-envelope"
-                              aria-hidden="true"
-                            ></i>
-                            Email
-                          </EmailShareButton>
-                        </div>
-                      </>
-                    )}
-                  </div> */}
-                {propertyData && propertyData.community && (
-                  <div className="bg-light px-3 py-2 mb-5">
-
-                      <div className="py-3">
-                        <p className="text-primary fw-500 mb-0 fs-20">
+                        <br></br>
                           <Link
-                            href={`/communities/${propertyData.community["slug"]}`}
-                            className="text-decoration-none"
+                              href={`/projects/${propertyData.project["slug"]}`}
+                              className="text-decoration-none bdrBtn width-auto-fit"
                           >
-                            {propertyData &&
-                              propertyData.community &&
-                              propertyData.community["name"]}
+                            View More
                           </Link>
-                          {/* Community */}
-                        </p>
-                      </div>
-                    
-
-                    <div>
-                       {propertyData?.community["gallery"] && 
-                      <Swiper
-                      loop={true}
-                      slidesPerView={1}
-                      spaceBetween={10}
-                      navigation={{
-                        nextEl: ".swiper-button-next",
-                        prevEl: ".swiper-button-prev",
-                      }}
-                      breakpoints={{
-                        640: {
-                          slidesPerView: 1,
-                          spaceBetween: 10,
-                        },
-                        768: {
-                          slidesPerView: 1,
-                          spaceBetween: 10,
-                        },
-                        1024: {
-                          slidesPerView: 1,
-                          spaceBetween: 10,
-                        },
-                      }}
-                      modules={[Navigation]}
-                      onSwiper={(swiper) => {
-                        CommunitySwiperRef.current = swiper;
-                      }}
-                      className="swiper pb-2 communityProjectSwiperr"
-                    >
-                      {propertyData?.community["gallery"].map(
-                        (community, index) => {
-                          return (
-                            <SwiperSlide
-                              key={community.id + index + "community"}
-                            >
-                              <div className="swiper-slide">
-                                <Link
-                                  href={`/communities/${propertyData.community["slug"]}`}
-                                  className="text-decoration-none communityImgCont"
-                                >
-                                <img
-                                    src={community["path"]}
-                                    alt="community1"
-                                    className="img-fluid"
-                                    style={{ height: "300px", width: "500px" }}
-                                  />
-                                  {/* <div className="communityImgOverlay"> */}
-                                    {/* <div className="text-white"></div> */}
-                                  {/* </div> */}
-                                </Link>
-                              </div>
-                            </SwiperSlide>
-                          );
-                        }
-                      )}
-                      <div
-                        className="swiper-button-prev swiperUniquePrev text-white"
-                        onClick={() => CommunitySwiperRef.current?.slidePrev()}
-                      >
-                        <span className="">
-                          <i className="bi bi-chevron-left fs-1"></i>
-                        </span>
-                      </div>
-                      <div
-                        className="swiper-button-next swiperUniqueNext text-white"
-                        onClick={() => CommunitySwiperRef.current?.slideNext()}
-                      >
-                        <span className="">
-                          <i className="bi bi-chevron-right fs-1"></i>
-                        </span>
-                      </div>
-                      </Swiper>
-                    }
-                       
-                    </div>
-                    <div className="">
-                      <p className="mb-0 fs-14">
-                        {propertyData &&
-                          propertyData.community &&
-                          parse(propertyData.community["description"] ?? "")}
-                      </p>
-                    </div>
-                  </div>
-                  )}
-                </div>
-              
-                {propertyData && (
+                          <br></br>
+                          {propertyData && (
                   <>
                     <div className="col-12 col-lg-12 col-md-8">
                       <div>
@@ -1298,7 +1034,7 @@ function SinglePropertyView({ params }) {
                                 setIcon("school");
                               }}
                             >
-                              School
+                              Education
                             </button>
                           </div>
                           <div className="col-6 col-lg-3 col-md-3">
@@ -1536,6 +1272,418 @@ function SinglePropertyView({ params }) {
                     </div> */}
                   </>
                 )}
+                      </div>
+                    )}
+                    
+                </div>
+                
+                <div className="col-12 col-lg-4 col-md-4 propertyDesktopItemLink">
+                  <div className=" px-2">
+                      <div className="rowFlexBar border-bottom border-2">
+                        <div className="mdColBar">
+                          <div className=" py-3">
+                            <p className="text-primary fw-500 mb-1 fs-16">
+                            REFERENCE NUMBER
+                            </p>
+                            <p className="fw-500 mb-0 fs-16">
+                              {propertyData && propertyData?.reference_number}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mdColBar">
+                          <div className=" py-3">
+                            <p className="text-primary fw-500 mb-1 fs-16">
+                              PERMIT NUMBER
+                            </p>
+                            <p className="fw-500 mb-0 fs-16">
+                              {propertyData && propertyData.permit_number}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                    <div className="rowFlexBar border-bottom border-2">
+                      <div className="mdColBar">
+                        <div className=" py-3">
+                          <p className="text-primary fw-500 mb-1 fs-16">
+                            PROPERTY STATUS
+                          </p>
+                          <p className="fw-500 mb-0 fs-16">
+                          {
+                            propertyData?.category === 'Rent' && 
+                            (<>
+                               {propertyData && propertyData.category}<small> ({propertyData?.rental_period}) </small>
+                            </>
+                            )
+                          }
+                          {
+                            propertyData?.category === 'Buy' && 
+                            (<>
+                               {propertyData && propertyData?.completionStatus}
+                            </>
+                            )
+                          }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mdColBar">
+                        <div className=" py-3">
+                          <p className="text-primary fw-500 mb-1 fs-16">
+                            PROPERTY TYPE
+                          </p>
+                          <p className="fw-500 mb-0 fs-16">
+                            {propertyData && propertyData.accommodation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rowFlexBar border-bottom border-2">
+                      <div className="mdColBar">
+                        <div className=" py-3">
+                          <p className="text-primary fw-500 mb-1 fs-16">
+                            PRICE
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mdColBar">
+                        <div className=" py-3">
+                          <p className="fw-500 mb-0 fs-16">
+                            AED{" "}
+                            {propertyData &&
+                              new Intl.NumberFormat().format(
+                                propertyData.price
+                              )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-bottom border-2 py-3">
+                      <ul className="list-unstyled proInfoList">
+                        <li className="liBar">
+                          <small>
+                            <img
+                              src="/images/icons/bed-blue.png"
+                              alt="Range"
+                              className="img-fluid"
+                              width="30px"
+                            />
+                            <span className="align-text-top ms-2 fs-14 fw-500">
+                              {propertyData && propertyData.bedrooms}
+                            </span>
+                          </small>
+                        </li>
+                        <li className="liBar">
+                          <small>
+                            <img
+                              src="/images/icons/bath-blue.png"
+                              alt="Range"
+                              className="img-fluid"
+                              width="30px"
+                            />
+                            <span className="align-text-top ms-2 fs-14 fw-500">
+                              {propertyData && propertyData.bathrooms}
+                            </span>
+                          </small>
+                        </li>
+
+                        <li className="liBar">
+                          <small>
+                            <img
+                              src="/images/icons/area-blue.png"
+                              alt="Range"
+                              className="img-fluid"
+                              width="30px"
+                            />
+                            <span className="align-text-top ms-2 fs-14 fw-500">
+                              {propertyData && propertyData.area}{" "}
+                              {propertyData?.unit_measure}
+                            </span>
+                          </small>
+                        </li>
+                        {propertyData &&
+                          propertyData.developer &&
+                          
+                            <li className="liBar">
+                              <small>
+                                <img
+                                  src="/images/icons/building.png"
+                                  alt="Range"
+                                  className="img-fluid"
+                                  width="30px"
+                                />
+                                <span className="align-text-top ms-2 fs-16 fw-500">
+                                  <Link
+                                    href={`/developers/${propertyData?.developer.slug}`}
+                                    className="text-decoration-none"
+                                  >
+                                    {propertyData?.developer.name}
+                                  </Link>
+                                </span>
+                              </small>
+                            </li>
+                          }
+                      </ul>
+                    </div>
+                    {propertyData?.agent && (
+                      <>
+                      <div className="py-3 proUserBox">
+                    <div className="d-flex justify-content-start py-2 border-bottom border-2 ">
+                      <div className="my-auto projctSpecIMg me-3 mb-3">
+                        <center>
+                          <img
+                            src={
+                              propertyData?.agent && propertyData.agent?.image
+                            }
+                            className="img-fluid"
+                            width="60"
+                            alt={
+                              propertyData?.agent && propertyData.agent?.name
+                            }
+                          />
+                        </center>
+                      </div>
+                      <div className="proUserBoxContent mb-3">
+                        <div className="projectSpec  text-uppercase">
+                          <p className="text-primary fw-500 mb-0 fs-16">
+                            {propertyData?.agent && propertyData?.agent?.name}
+                          </p>
+                          <p className="fw-500 mb-2 fs-14">
+                            {propertyData?.agent &&
+                              propertyData?.agent?.designation}
+                          </p>
+                          <a
+                            href={"tel:" + propertyData?.agent?.contact}
+                            className="Probtn bg-primary"
+                          >
+                            <img
+                              src="/images/icons/phone.png"
+                              className="proPhoneIcon"
+                            />
+                            CALL NOW
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                      <div className="py-3">
+                      <div className="BtnsflexBar mb-3">
+                        <a
+                          className="Probtn whatsappBtn wd50pr"
+                          href={
+                            "https://wa.me/" +
+                            propertyData?.agent?.whatsapp +
+                            "?text=Hi, " +
+                            propertyData?.agent?.name +
+                            " Please let me know more about the following property "+getCurrentUrl() 
+                          }
+                        >
+                          <i className="fa fa-whatsapp"></i>
+                          WHATSAPP
+                        </a>
+                        <a
+                          className="Probtn bg-primary wd50pr"
+                          href={"mailto:" + propertyData?.agent?.email}
+                        >
+                          <i className="fa fa-envelope"></i>
+                          Email
+                        </a>
+                      </div>
+
+                      <div className="text-center mb-3">
+                        <a
+                          className="Probtn bg-primary scheduleBtn"
+                          data-bs-toggle="modal"
+                          data-bs-target="#bookAmeeting"
+                        >
+                          <i className="fa fa-calendar" aria-hidden="true"></i>
+                          SCHEDULE VIEWING
+                        </a>
+                      </div>
+                    </div>
+                      </>
+                    
+                    )}
+                    
+                    {/*                     
+                    {propertyData && (
+                      <div className="py-3">
+                        <div>
+                          Share on:&nbsp;
+                          <WhatsappShareButton
+                            title={propertyData?.name}
+                            separator=","
+                            url={getCurrentUrl()}
+                            className="text-decoration-none  text-black"
+                          >
+                            <small>
+                              <img
+                                src="/images/icons/whatsapp.png"
+                                alt="Range"
+                                className="img-fluid"
+                                width="25px"
+                              />
+                            </small>
+                          </WhatsappShareButton>
+                          <EmailShareButton url={getCurrentUrl()}>
+                            <small>
+                              <img
+                                src="/images/icons/gmail.png"
+                                alt="Range"
+                                className="img-fluid"
+                                width="25px"
+                              />
+                            </small>
+                          </EmailShareButton>
+                        </div>
+                      </div>
+                    )} */}
+                  </div>
+                  { propertyData &&
+                    propertyData?.category != 'Rent' && propertyData?.completionStatus !="Off-Plan" &&
+                    <MortgageCalculator property={propertyData} />
+                  }
+                  
+                  
+                  {/* <div>
+                    {propertyData && (
+                      <>
+                        <p>Share this property on:</p>
+                        <div className="text-center mb-3">
+                          <WhatsappShareButton
+                            title={propertyData?.name}
+                            separator=","
+                            url={getCurrentUrl()}
+                            className=" Probtn whatsappBtn  scheduleBtn"
+                          >
+                            <i
+                              className="fa fa-whatsapp"
+                              aria-hidden="true"
+                            ></i>
+                            Whatsapp
+                          </WhatsappShareButton>
+                        </div>
+                        <div className="text-center mb-3">
+                          <EmailShareButton
+                            url={getCurrentUrl()}
+                            className="Probtn bg-primary scheduleBtn"
+                          >
+                            <i
+                              className="fa fa-envelope"
+                              aria-hidden="true"
+                            ></i>
+                            Email
+                          </EmailShareButton>
+                        </div>
+                      </>
+                    )}
+                  </div> */}
+                {propertyData && propertyData.community && (
+                  <div className="bg-light px-3 py-2 mb-5">
+
+                      <div className="py-3">
+                        <p className="text-primary fw-500 mb-0 fs-20">
+                          <Link
+                            href={`/communities/${propertyData.community["slug"]}`}
+                            className="text-decoration-none text-primary"
+                          >
+                            {propertyData &&
+                              propertyData.community &&
+                              propertyData.community["name"]}
+                          </Link>
+                          {/* Community */}
+                        </p>
+                      </div>
+                    
+
+                    <div>
+                       {propertyData?.community["gallery"] && 
+                      <Swiper
+                      loop={true}
+                      slidesPerView={1}
+                      spaceBetween={10}
+                      navigation={{
+                        nextEl: ".swiper-button-next",
+                        prevEl: ".swiper-button-prev",
+                      }}
+                      breakpoints={{
+                        640: {
+                          slidesPerView: 1,
+                          spaceBetween: 10,
+                        },
+                        768: {
+                          slidesPerView: 1,
+                          spaceBetween: 10,
+                        },
+                        1024: {
+                          slidesPerView: 1,
+                          spaceBetween: 10,
+                        },
+                      }}
+                      modules={[Navigation]}
+                      onSwiper={(swiper) => {
+                        CommunitySwiperRef.current = swiper;
+                      }}
+                      className="swiper pb-2 communityProjectSwiperr"
+                    >
+                      {propertyData?.community["gallery"].map(
+                        (gallery, index) => {
+                          return (
+                            <SwiperSlide
+                              key={gallery.id + index + "community"}
+                            >
+                              <div className="swiper-slide">
+                                <Link
+                                  href={`/communities/${propertyData.community["slug"]}`}
+                                  className="text-decoration-none communityImgCont"
+                                >
+                                <img
+                                    src={gallery["path"]}
+                                    alt={gallery["path"] ? gallery["title"] : propertyData.community["name"]}
+                                    className="img-fluid"
+                                    style={{ height: "300px", width: "500px" }}
+                                  />
+                                  {/* <div className="communityImgOverlay"> */}
+                                    {/* <div className="text-white"></div> */}
+                                  {/* </div> */}
+                                </Link>
+                              </div>
+                            </SwiperSlide>
+                          );
+                        }
+                      )}
+                      <div
+                        className="swiper-button-prev swiperUniquePrev text-white"
+                        onClick={() => CommunitySwiperRef.current?.slidePrev()}
+                      >
+                        <span className="">
+                          <i className="bi bi-chevron-left fs-1"></i>
+                        </span>
+                      </div>
+                      <div
+                        className="swiper-button-next swiperUniqueNext text-white"
+                        onClick={() => CommunitySwiperRef.current?.slideNext()}
+                      >
+                        <span className="">
+                          <i className="bi bi-chevron-right fs-1"></i>
+                        </span>
+                      </div>
+                      </Swiper>
+                    }
+                       
+                    </div>
+                    <div className="">
+                      <p className="mb-0 fs-14">
+                        {propertyData &&
+                          propertyData.community &&
+                          parse(propertyData.community["description"] ?? "")}
+                      </p>
+                    </div>
+                  </div>
+                  )}
+                </div>
+              
+                
               </div>
             </div>
           </div>
@@ -1698,11 +1846,11 @@ function SinglePropertyView({ params }) {
                           >
                             <div className="swiper-slide">
                               <div>
-                                <div className="card propCard rounded-0">
+                                <div className="card propCard rounded-0  projectPropertyCard">
                                   <div>
                                     <div className="">
                                       <a
-                                        href=""
+                                        href={`/properties/${similarProperty.slug}`}
                                         className="text-decoration-none"
                                       >
                                         <div className="projectImgCont">
@@ -1710,7 +1858,9 @@ function SinglePropertyView({ params }) {
                                             src={
                                               similarProperty.property_banner
                                             }
-                                            alt="project1"
+                                            alt={
+                                              similarProperty.name
+                                            }
                                             className="img-fluid propImg"
                                           />
                                           <div className="projectImgOverlay">
@@ -1830,6 +1980,7 @@ function SinglePropertyView({ params }) {
         </div>
       </section>
       )}
+      <MortgageModel></MortgageModel>
       <CalenderModel />
       <DownloadPropertyPPTModal brochureLink={propertyData?.brochureLink} fileName={propertyData?.name+" Brochure.pdf"}/>
       <SaleOfferModal />

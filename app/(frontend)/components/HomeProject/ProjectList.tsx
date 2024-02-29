@@ -39,6 +39,7 @@ function ProjectList() {
     area_unit: "",
     bedrooms: "",
     bathrooms: "",
+    handOver : "",
     starting_price: "",
     mainImage: "",
     slug: "",
@@ -87,6 +88,7 @@ function ProjectList() {
     area_unit,
     bedrooms,
     bathrooms,
+    handOver,
     starting_price,
     mainImage,
     slug,
@@ -101,6 +103,7 @@ function ProjectList() {
       area_unit,
       bedrooms,
       bathrooms,
+      handOver,
       starting_price,
       mainImage,
       slug,
@@ -147,6 +150,7 @@ function ProjectList() {
                     area_unit,
                     bedrooms,
                     bathrooms,
+                    handOver,
                     starting_price,
                     mainImage,
                     lat,
@@ -170,6 +174,7 @@ function ProjectList() {
                         area_unit,
                         bedrooms,
                         bathrooms,
+                        handOver,
                         starting_price,
                         mainImage,
                         slug,
@@ -192,7 +197,8 @@ function ProjectList() {
                           whiteSpace: "nowrap", // Rounded corners
                         }}
                       >
-                        {starting_price}
+                        {new Intl.NumberFormat().format(starting_price)}
+                        
                       </div>
                     </OverlayView>
                     {isOpen && infoWindowData?.id === ind && (
@@ -208,6 +214,7 @@ function ProjectList() {
                             area_unit = {infoWindowData.area_unit}
                             bathrooms={infoWindowData.bathrooms}
                             bedrooms={infoWindowData.bedrooms}
+                            handOver = {infoWindowData.handOver}
                             starting_price={infoWindowData.starting_price}
                             address={infoWindowData.address}
                             mainImage={infoWindowData.mainImage}
@@ -326,6 +333,7 @@ function ProjectList() {
                                 className="form-control"
                                 id="maxprice"
                                 placeholder="Any Price"
+                                min={0}
                                 ref={maxPriceRef}
                               />
                             </div>

@@ -158,6 +158,9 @@ margin-bottom: 30px;
 .contactBox h5{
 margin-bottom: 15px;
 }
+#headerSimpleImg{
+    height: auto;
+    }
 header .headerSimpleImg{
 height: 250px;
 }
@@ -283,11 +286,12 @@ top: 12px;
 }
 .headerForm{
 width: 90%;
+top: 80% !important;
 }
 .navbar .container .my-auto .d-flex.justify-content-end{
 position: absolute;
 left: 10px;
-bottom: 5px;
+bottom: 3px;
 width: 210px;
 justify-content: flex-start !important;
 }
@@ -308,7 +312,7 @@ max-width: 90% !important;
 width: 70px !important;
 }
 .homeHeader .videoContainer {
-display: none;
+/* display: none; */
 }
 .homeHeader{
 background-image: url("/images/poster-img.png");
@@ -431,5 +435,18 @@ width: 200px !important;
 }
 .priceTable thead .tblThText {
     font-size: 12px !important; 
+}
+.blogDetail .imgcardBox .overlayText h5{
+font-size: 24px;
+}
+.blogCard .eventCardImg{
+    height: 250px;
+}
+.sliderArea .bSliderImg{
+    height: 330px;
+}
+.proGalleryArea .nav-tabs .nav-item .nav-link{
+margin: 0px 10px !important;
+font-size: 14px !important;
 }
 }

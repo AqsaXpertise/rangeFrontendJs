@@ -12,24 +12,75 @@ function MortgageCalculator({ property }) {
     const [payableEMI, setPayableEMI] = useState(0);
     const contactSideText ="An esteemed award-winning real estate brokerage based in Dubai, UAE.";
     const pageUrl ="Home"
+    const [redirectUrl, setRedirectUrl] = useState();
     
     const calculateDownPayment = () => {
         const downPayment = (price * downPaymentPercentage) / 100;
-        setDownPayment(downPayment);
+        setDownPayment(Math.floor(downPayment));
     };
 
     const calculateEMI = () => {
         calculateMortgage();
         return 0;
     };
+    async function calculateMortgageAPI(propertyValue, downPayment, interestRate, termYears, termMonths) {
+        const endpoint = process.env.NEXT_PUBLIC_API_ENDPOINT + 'emi-calculator'; // Adjust the endpoint as necessary
+        const authToken = "my_mortgage_api_PvNc94Yrj6JJFY8GgtC8VHnp"; // Your Auth Token
+        const formData = new FormData();
+        
+        formData.append('property_value', propertyValue);
+        formData.append('down_payment', Math.floor(downPayment));
+        formData.append('interest_rate', interestRate);
+        formData.append('mortgage_term_years', termYears);
+        formData.append('mortgage_term_months', termMonths);
+    
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Auth-Token': authToken,
+                },
+                body: formData,
+            });
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+    
+            return await response.json();
+        } catch (error) {
+            console.error('Error in calculateMortgage:', error);
+            throw error; // Rethrow error for handling in calling context
+        }
+    }
+    
+    
 
     function calculateMortgage() {
+        
         const amountBorrowed = price - downPayment;
         const r = percentToDecimal(interestRate);
         let n = yearsToMonths(mortgageTerm);
         n = n + parseInt(mortgageTermMonths);
         const pmt = (r * amountBorrowed) / (1 - Math.pow(1 + r, -n));
-        setPayableEMI(parseFloat(pmt.toFixed(2)));
+        
+        if(price > 0 && downPayment > 0 && interestRate > 0){
+            calculateMortgageAPI(price, downPayment, interestRate, mortgageTerm, mortgageTermMonths)
+            .then(data => {
+                if(data.message == "success"){
+                    setPayableEMI(data.data.emi);
+                    setRedirectUrl(data.data.url)
+                }
+            })
+            .catch(error => {
+                console.error('Mortgage Calculation Failed:', error);
+            });
+        }
+        
+
+        // setPayableEMI(parseFloat(pmt.toFixed(2)));
+       
     }
 
     const yearsToMonths = (termYears) => {
@@ -141,7 +192,7 @@ function MortgageCalculator({ property }) {
                             placeholder={0}
                             value={downPayment}
                             name="downPayment"
-                            onChange={(e) => setDownPayment(parseInt(e.target.value))}
+                            onChange={(e) => setDownPayment(Math.floor(parseInt(e.target.value)))}
                         />
                         <small>
                             <i>Minimum of 20%</i>
@@ -231,8 +282,9 @@ function MortgageCalculator({ property }) {
                     <h4 className=" mb-2">AED {payableEMI ? payableEMI : ""}</h4>
                 </div>
                 <div className="mb-2">
-                    <a href="" className="text-white fs-16"  data-bs-toggle="modal"
-                    data-bs-target="#enquireNow">
+                    {/* <a href="" className="text-white fs-16"  data-bs-toggle="modal"
+                    data-bs-target="#mortageModel"> */}
+                    <a href={redirectUrl} className="text-white fs-16" target="_blanket">
                         VIEW CLOSING COSTS
                     </a>
                 </div>
@@ -250,7 +302,7 @@ function MortgageCalculator({ property }) {
                     personalised solutions to meet the specific needs of each of our clients
                 </p>
             </div>
-            <MortgageModel></MortgageModel>
+            
         </div>
     );
 }

@@ -1539,9 +1539,9 @@ width: 100%;
 .react-datepicker__day--selected{
 background-color: #2F3C6A !important;
 color: #fff !important;
-width: 28px !important;
+/* width: 28px !important;
 height: 28px !important;
-border-radius: 100px !important;
+border-radius: 100px !important; */
 font-size: 16px;
 display: flex !important;
 justify-content: center;
@@ -1554,6 +1554,41 @@ color: #2F3C6A !important;
 font-weight: 300 !important;
 margin-bottom: 15px;
 }
+
+.navbar.bg-white {
+    border-bottom: 1px solid #2379BB /* Example: 2px solid black border */
+}
+
+.footer {
+    border-top: 1px solid #2379BB /* Example: 2px solid black border */
+}
+.instagram-gradient {
+    background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D, #F56040, #F77737, #FCAF45, #FFDC80);
+}
+.tiktok-gradient {
+    background: linear-gradient(45deg, #010101, #69C9D0, #EE1D52);
+}
+.linkedin-background {
+    background-color: #0077B5;
+}
+#iconRoundBlack:hover{
+    box-shadow: #002db6;
+}
+.iconRoundBlack {
+    display: inline-block;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .iconRoundBlack:hover {
+    box-shadow: 0px 0px 10px #888;
+  }
+.youtube-background {
+    background-color: #FF0000;
+}
+.twitter-background {
+    background-color: #1DA1F2;
+}
+
 .react-datepicker__navigation--previous{
 position: absolute !important;
 right: 40px !important;
@@ -1594,13 +1629,23 @@ z-index: 2;
 .headerForm{
 position: absolute;
 left: 50%;
-top: 50%;
+top: 70%;
 width: 95%;
 max-width: 500px;
 margin: 0 auto;
 transform: translate(-50%, -50%);
 z-index: 9;
 }
+.goldenVisa:hover{
+    color: #136dae !important;
+}
+.vertical-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Ensure the container takes the full height of its parent */
+}
+
 .frmTabList{
 display: flex;
 justify-content: flex-start;
@@ -1945,6 +1990,10 @@ background-color: #2f3c6a;
 .communityPropertyCard{
     min-height: auto !important;
 }
+.projectPropertyCard{
+    min-height: auto !important;
+    text-align: left;
+}
 .bdrBtn{
     background-color: unset;
     border: 1.5px solid #136DAE;
@@ -1975,4 +2024,10 @@ background-color: #2f3c6a;
     }
     .lookingForMobileItem{
         display: none;
+    }
+    #multiSilder .swiper-slide:before {
+        background-color: unset !important;
+    }
+    .largeCloseBtn{
+        font-size: larger;
     }

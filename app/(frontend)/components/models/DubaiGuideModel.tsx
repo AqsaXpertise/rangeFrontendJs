@@ -62,6 +62,7 @@ function DubaiGuideModel(props) {
   };
 
   const onSubmit = (data) => {
+    setIsLoading(false);
     saveContactFormApi(data)
       .then((res) => {
         // toast.success(
@@ -71,14 +72,16 @@ function DubaiGuideModel(props) {
           url: props.downloadLink,
         })
           .then(function () {
-            toast.success(`${props.title} has been downloaded successfully`);
-            "Please Wait until your " + props.title + " is being download"
+            setIsLoading(false);
+            // toast.success(`${props.title} has been downloaded successfully`);
+            toast.success("Thank you. your document is downloading.")
           })
           .catch(function (error) {
             toast.error(`Download failed Something went wrong!`);
           });
        
         reset();
+        closeRef.current.click();
       })
       .catch((err) => {
         toast.error("Something went wrong, please try again");
@@ -141,7 +144,7 @@ function DubaiGuideModel(props) {
                         <div className="row">
                           <div className="col-md-12">
                             <h6 className="text-primary text-center">
-                              Enter Details For Downloding {props.title}
+                              Enter Details For Downloading {props.title}
                             </h6>
 
                             {/* {showOtp && (

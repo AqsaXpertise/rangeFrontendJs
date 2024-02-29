@@ -77,6 +77,7 @@ function SimpleModal(props) {
   // };
 
   const onSubmit = (data) => {
+    setIsLoading(true);
     saveContactFormApi(data)
       .then((res) => {
         // toast.success(
@@ -86,9 +87,10 @@ function SimpleModal(props) {
           url: props.brochure,
         })
           .then(function () {
+            setIsLoading(false);
             closeRef.current.click();
             reset();
-            toast.success("Thank you, your document is downloading");
+            toast.success("Thank you. your document is downloading.");
           })
           .catch(function (error) {
             toast.error(`Download failed Something went wrong!`);
@@ -161,7 +163,7 @@ function SimpleModal(props) {
                         <div className="row">
                           <div className="col-md-12">
                             <h6 className="text-primary text-center">
-                              Enter Details For Downloding Brochure
+                              Enter Details For Downloading Brochure
                             </h6>
 
                             {/* {showOtp && (
