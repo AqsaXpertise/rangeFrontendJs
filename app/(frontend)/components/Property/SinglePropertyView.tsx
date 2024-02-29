@@ -48,9 +48,11 @@ function SinglePropertyView({ params }) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const { propertyData } = useGetSinglePropertyData(slug);
+
+  const placesList = ["geometry", "places", "marker"];
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.GOOGLE_MAP_KEY,
-    libraries: ["geometry", "places", "marker"],
+    libraries: placesList,
   });
   const projectSwiperRef = useRef<SwiperCore>();
   const CommunitySwiperRef = useRef<SwiperCore>();
@@ -108,37 +110,95 @@ function SinglePropertyView({ params }) {
   };
 
   useEffect(() => {
+    console.log("Loading... updating...");
     let path = getFontAwesomeSvgPath(icon);
     setIconPath(path);
   }, [icon]);
 
+  // const AdvanceMarker = ({ map, position, children, onClick }) => {
+  //   const rootRef = useRef(null);
+  //   const markerRef = useRef(null);
+
+  //   useEffect(() => {
+  //     if (!rootRef.current) {
+  //       const container = document.createElement("div");
+  //       container.classList.add("mapMarker");
+  //       rootRef.current = createRoot(container);
+  //       markerRef.current = new google.maps.marker.AdvancedMarkerElement({
+  //         position,
+  //         content: container,
+  //         title: 'Uluru',
+  //       });
+  //     }
+
+  //     return () => (markerRef.current.map = null);
+  //   }, []);
+
+  //   useEffect(() => {
+  //     rootRef.current.render(children);
+  //     markerRef.current.position = position;
+  //     markerRef.current.map = map;
+  //     const listener = markerRef.current.addListener("click", onClick);
+  //     return () => listener.remove();
+  //   }, [map, position, children, onClick]);
+  //   return <>{children}</>;
+  // };
+
   const AdvanceMarker = ({ map, position, children, onClick }) => {
-    const rootRef = useRef(null);
     const markerRef = useRef(null);
-
+  
     useEffect(() => {
-      if (!rootRef.current) {
-        const container = document.createElement("div");
-        container.classList.add("mapMarker");
-        rootRef.current = createRoot(container);
-        markerRef.current = new google.maps.marker.AdvancedMarkerElement({
-          position,
-          content: container,
+      const createMarker = () => {
+        // Ensure google is available
+        if (!window.google || !window.google.maps) {
+          console.error('Google Maps API not available.');
+          return null;
+        }
+        return new window.google.maps.Marker({
+          position: position,
+          map: map,
+          icon: {
+            url: iconPath, // Set the icon path here
+            scaledSize: new window.google.maps.Size(32, 32), // Adjust the size if needed
+          },
         });
+      };
+  
+      if (!markerRef.current) {
+        markerRef.current = createMarker();
+        if (!markerRef.current) return; // Stop further execution if marker creation failed
       }
-
-      return () => (markerRef.current.map = null);
-    }, []);
-
+  
+      return () => {
+        // Clean up resources when component is unmounted
+        if (markerRef.current) {
+          markerRef.current.setMap(null); // Remove marker from map
+        }
+      };
+    }, [map]); // Dependency array to ensure effect runs only when map changes
+  
     useEffect(() => {
-      rootRef.current.render(children);
-      markerRef.current.position = position;
-      markerRef.current.map = map;
-      const listener = markerRef.current.addListener("click", onClick);
-      return () => listener.remove();
-    }, [map, position, children, onClick]);
-    return <>{children}</>;
+      if (!markerRef.current) return;
+  
+      // Update marker position
+      markerRef.current.setPosition(position);
+  
+      // Add click listener
+      markerRef.current.addListener('click', onClick);
+  
+      return () => {
+        // Clean up event listener when component is unmounted
+        if (markerRef.current) {
+          window.google.maps.event.clearListeners(markerRef.current, 'click');
+        }
+      };
+    }, [position, onClick]);
+  
+    // Render children if any with unique keys
+    const renderedChildren = Array.isArray(children) ? children : [children];
+    return <>{renderedChildren.map((child, index) => React.cloneElement(child, { key: `marker-${index}` }))}</>;
   };
+
   const [propertyPrice, setPropertyPrice] = useState(propertyData?.price);
   const [downpaymentPer, setDownpaymentPer] = useState(20);
   const [downpaymentMoney, setDownpaymentMoney] = useState(0);
